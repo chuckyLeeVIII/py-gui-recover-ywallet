@@ -14,6 +14,7 @@ interface Transaction {
   coinType: string;
   txid: string;
   confirmed: boolean;
+  type?: string;
 }
 
 interface SendItem {
@@ -28,6 +29,13 @@ interface UnconfirmedTx {
   fee: number;
 }
 
+interface Utxo {
+  txid: string;
+  vout: number;
+  amount: number;
+  confirmations: number;
+}
+
 const COIN_TYPES = ['BTC', 'ETH', 'USDT', 'LTC', 'WBTC'];
 
 function App() {
@@ -37,6 +45,7 @@ function App() {
   const [sendItems, setSendItems] = useState<SendItem[]>([{ recipient: '', amount: '', coinType: 'BTC' }]);
   const [recoveryKey, setRecoveryKey] = useState('');
   const [unconfirmedTx, setUnconfirmedTx] = useState<UnconfirmedTx | null>(null);
+  const [utxos, setUtxos] = useState<Utxo[]>([]);
 
   const recoverWallet = () => {
     try {
@@ -55,17 +64,130 @@ function App() {
 
       setActiveWallet({ address, privateKey: recoveryKey, publicKey });
       updateBalances(address);
+      fetchUtxos(address);
+      fetchTransactionHistory(address);
     } catch (error) {
       console.error('Error recovering wallet:', error);
       alert('Invalid recovery key. Please try again.');
     }
   };
 
-  // ... (keep all other existing functions: updateBalances, sendCoins, addSendItem, removeSendItem, updateSendItem, checkUnconfirmedTransactions, handleRBF, handleCPFP, downloadTransactionData)
+  const updateBalances = async (address: string) => {
+    try {
+      const res = await axios.get(`https://api.blockcypher.com/v1/btc/main/addrs/${address}/balance`);
+      setBalances({ BTC: res.data.balance / 1e8 });
+    } catch (err) {
+      console.error('Error fetching balances:', err);
+    }
+  };
+
+  const fetchUtxos = async (address: string) => {
+    try {
+      const res = await axios.get(`https://blockchain.info/unspent?active=${address}`);
+      const uts = res.data.unspent_outputs.map((u: any) => ({
+        txid: u.tx_hash_big_endian,
+        vout: u.tx_output_n,
+        amount: u.value,
+        confirmations: u.confirmations,
+      }));
+      setUtxos(uts);
+    } catch (err) {
+      console.error('Error fetching UTXOs:', err);
+      setUtxos([]);
+    }
+  };
+
+  const fetchTransactionHistory = async (address: string) => {
+    try {
+      const res = await axios.get(`https://api.blockcypher.com/v1/btc/main/addrs/${address}`);
+      const hist: Transaction[] = (res.data.txrefs || []).map((tx: any, idx: number) => ({
+        id: idx,
+        amount: tx.value / 1e8,
+        recipient: tx.addresses?.[0] || address,
+        timestamp: new Date(tx.confirmed || Date.now()).toLocaleString(),
+        coinType: 'BTC',
+        txid: tx.tx_hash,
+        confirmed: tx.confirmations > 0,
+        type: 'transfer',
+      }));
+      setTransactions(hist);
+    } catch (err) {
+      console.error('Error fetching history:', err);
+    }
+  };
+
+  const addSendItem = () =>
+    setSendItems([...sendItems, { recipient: '', amount: '', coinType: 'BTC' }]);
+
+  const removeSendItem = (index: number) =>
+    setSendItems(sendItems.filter((_, i) => i !== index));
+
+  const updateSendItem = (index: number, field: keyof SendItem, value: string) =>
+    setSendItems(
+      sendItems.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
+    );
+
+  const sendCoins = () => {
+    const newTxs: Transaction[] = sendItems.map((item, idx) => ({
+      id: transactions.length + idx + 1,
+      amount: parseFloat(item.amount),
+      recipient: item.recipient,
+      timestamp: new Date().toLocaleString(),
+      coinType: item.coinType,
+      txid: Math.random().toString(36).substring(2),
+      confirmed: false,
+      type: 'transfer',
+    }));
+    setTransactions([...transactions, ...newTxs]);
+    setSendItems([{ recipient: '', amount: '', coinType: 'BTC' }]);
+  };
+
+  const checkUnconfirmedTransactions = async () => {
+    if (!activeWallet) return;
+    try {
+      const res = await axios.get(
+        `https://api.blockcypher.com/v1/btc/main/addrs/${activeWallet.address}`,
+      );
+      const utx = res.data.unconfirmed_txrefs?.[0];
+      if (utx) {
+        setUnconfirmedTx({
+          txid: utx.tx_hash,
+          amount: utx.value / 1e8,
+          fee: utx.fees || 0,
+        });
+      } else {
+        setUnconfirmedTx(null);
+      }
+    } catch (err) {
+      console.error('Error checking unconfirmed transactions:', err);
+    }
+  };
+
+  const handleRBF = () => {
+    alert('RBF initiated (placeholder)');
+  };
+
+  const handleCPFP = () => {
+    alert('CPFP initiated (placeholder)');
+  };
+
+  const downloadTransactionData = () => {
+    if (!unconfirmedTx) return;
+    const data = JSON.stringify(unconfirmedTx, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'transaction.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     if (activeWallet) {
       checkUnconfirmedTransactions();
+      fetchUtxos(activeWallet.address);
+      fetchTransactionHistory(activeWallet.address);
     }
   }, [activeWallet]);
 
@@ -222,10 +344,13 @@ function App() {
                           {tx.confirmed ? "Confirmed" : "Unconfirmed"}
                         </span>
                         {" - "}
-                        <span className="text-blue-400">{tx.txid}</span>
-                      </div>
-                    </li>
-                  ))}
+                    <span className="text-blue-400">{tx.txid}</span>
+                      {tx.type && (
+                        <span className="ml-2 text-purple-400">({tx.type})</span>
+                      )}
+                  </div>
+                </li>
+              ))}
                 </ul>
               </div>
             </>

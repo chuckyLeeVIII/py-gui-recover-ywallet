@@ -61,6 +61,13 @@ Follow these steps to set up and run the PyGUI Wallet on your local machine:
 
    This will generate optimized files in the `dist` directory.
 
+7. **Run the app offline**
+
+   You can open the generated `dist/index.html` directly in your browser to use
+   the wallet without starting a development server. The interface will load
+   from your local files, though any features that require network access (such
+   as fetching balances) will still need an internet connection.
+
 ## Usage
 
 1. Open the application in your web browser.
@@ -69,6 +76,7 @@ Follow these steps to set up and run the PyGUI Wallet on your local machine:
 4. To send coins, enter the recipient's address, amount, and select the coin type.
 5. Click "Add Transaction" to send to multiple recipients in one go.
 6. Click "Send All" to process the transactions.
+* To view key variants from a mnemonic seed, download the open-source BTC Seed Tool (such as Ian Coleman's BIP39 tool) and open its HTML file locally.
 7. View your transaction history at the bottom of the page.
 
 ## Security Considerations

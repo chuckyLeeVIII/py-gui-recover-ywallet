@@ -3,6 +3,7 @@ import { Wallet, Send, History, Key, Coins, ArrowRight, Plus, Trash2, Download, 
 import * as bitcoin from 'bitcoinjs-lib';
 import { ec as EC } from 'elliptic';
 import axios from 'axios';
+import { Buffer } from 'buffer';
 
 const ec = new EC('secp256k1');
 

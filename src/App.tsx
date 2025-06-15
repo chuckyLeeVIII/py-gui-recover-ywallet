@@ -50,16 +50,18 @@ function App() {
   const recoverWallet = () => {
     try {
       let keyPair;
+      let publicKey: string;
       if (recoveryKey.startsWith('5') || recoveryKey.startsWith('K') || recoveryKey.startsWith('L')) {
         // WIF format
         keyPair = bitcoin.ECPair.fromWIF(recoveryKey, bitcoin.networks.bitcoin);
+        publicKey = keyPair.publicKey.toString('hex');
       } else {
         // Hex format
         const privateKey = Buffer.from(recoveryKey, 'hex');
         keyPair = ec.keyFromPrivate(privateKey);
+        publicKey = keyPair.getPublic().encode('hex');
       }
-      
-      const publicKey = keyPair.getPublic().encode('hex');
+
       const address = bitcoin.payments.p2pkh({ pubkey: Buffer.from(publicKey, 'hex') }).address;
 
       setActiveWallet({ address, privateKey: recoveryKey, publicKey });

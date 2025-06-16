@@ -1,11 +1,11 @@
 # PyGUI Wallet
 
-PyGUI Wallet is a multi-cryptocurrency wallet with a dark, futuristic interface built using React, TypeScript, and Tailwind CSS.
+PyGUI Wallet is a multi-cryptocurrency wallet with a dark, futuristic interface built using React, TypeScript, and Tailwind CSS. It is designed as a third-party offline ledger recovery tool. The application uses BTCRecover to search local files for wallet credentials, PyWallet to extract keys, and CryptoFuzz to recover seeds from wallet DAT files. All recovery operations are performed locally without modifying existing wallet data.
 
 ## Features
 
 - Support for multiple cryptocurrencies (BTC, ETH, USDT, LTC, WBTC)
-- Wallet recovery using private keys
+- Offline wallet recovery using BTCRecover, PyWallet, CryptoFuzz, and DeepTools-based methods
 - Send transactions to multiple recipients
 - Transaction history
 - Dark mode interface
